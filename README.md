@@ -57,6 +57,15 @@ python train-bert-512.py --is-training
     <td><center>0.568</center></td>
     <td><center>-</center></td>
   </tr>
+
+  <tr>
+    <td>multinomialNB</td>
+    <td><center>-</center></td>
+    <td><center>-</center></td>
+    <td><center>-</center></td>
+    <td><center>-</center></td>
+    <td><center>-</center></td>
+  </tr>
 </table>
 
 ## 4 - References
