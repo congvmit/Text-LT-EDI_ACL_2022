@@ -34,6 +34,10 @@ Classification system’s performance will be measured in terms of macro average
 
 ## 2 - How to run
 
+```bash
+python train-longformer-4096.py --is-training
+python train-bert-512.py --is-training
+```
 ## 3 - Current Results
 
 <table>
