@@ -7,7 +7,6 @@ import re
 from bs4 import BeautifulSoup
 
 import nltk
-
 nltk.download('stopwords')
 from nltk.corpus import stopwords
 
@@ -104,12 +103,12 @@ def text_cleaning(paragraph):
         sent = sents[i]
         sent = expand_contractions(sent, contractions_dict)
         # sent = remove_stopwords(sent, stopwords)
-        sent = re.sub(r"[^a-zA-Z\d]", " ", sent)  # Remove special Charecters
+        # sent = re.sub(r"[^a-zA-Z\d]", " ", sent)  # Remove special Charecters
         sent = re.sub(' +', ' ', sent)  # Remove Extra Spaces
         sent = sent.strip()
         sents[i] = sent
     sents = [sent for sent in sents if sent != '  ']
-    paragraph = ' [SEP] '.join(sents)
+    paragraph = ' . '.join(sents)
     # paragraph = '<s> ' + paragraph + ' </s>'
     return paragraph
 
@@ -119,21 +118,24 @@ label_mapping = {'moderate': 0, 'not depression': 1, 'severe': 2}
 tqdm.pandas()
 
 # Load dataset
-# train_df = pd.read_csv('dataset/train_80.tsv', sep='\t')
+train_df = pd.read_csv('dataset/train_80.tsv', sep='\t')
+dev_df = pd.read_csv('dataset/dev_20.tsv', sep='\t')
+dev_df = dev_df.rename(columns={'Text data': 'Text_data'})
 
-# dev_df = pd.read_csv('dataset/dev_20.tsv', sep='\t')
-# dev_df = dev_df.rename(columns={'Text data': 'Text_data'})
+train_df.Text_data = train_df.Text_data.progress_apply(text_cleaning)
+dev_df.Text_data = dev_df.Text_data.progress_apply(text_cleaning)
 
+train_df.Label = train_df.Label.progress_apply(lambda x: label_mapping[x])
+dev_df.Label = dev_df.Label.progress_apply(lambda x: label_mapping[x])
+
+train_df.to_csv('dataset/train_80_prepr.tsv', index=False, sep='\t')
+dev_df.to_csv('dataset/dev_20_prepr.tsv', index=False, sep='\t')
+
+
+# TEST
 test_df = pd.read_csv('dataset/dev_with_labels.tsv', sep='\t')
 test_df = test_df.rename(columns={'Text data': 'Text_data'})
 
-# train_df.Text_data = train_df.Text_data.progress_apply(text_cleaning)
-# dev_df.Text_data = dev_df.Text_data.progress_apply(text_cleaning)
-# train_df.Label = train_df.Label.progress_apply(lambda x: label_mapping[x])
-# dev_df.Label = dev_df.Label.progress_apply(lambda x: label_mapping[x])
-
-# train_df.to_csv('dataset/train_prepr.tsv', index=False, sep='\t')
-# dev_df.to_csv('dataset/dev_prepr.tsv', index=False, sep='\t')
 
 
 test_df.Text_data = test_df.Text_data.progress_apply(text_cleaning)

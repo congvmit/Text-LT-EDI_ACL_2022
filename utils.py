@@ -184,3 +184,14 @@ contractions_dict = {
     "hadn't": "had not",
     "won't": "will not",
 }
+
+def get_args():
+    import argparse
+
+    parser = argparse.ArgumentParser('Text-LT-EDI-ACL-2022')
+    parser.add_argument('--is-test', action='store_true')
+    parser.add_argument('--batch_size', type=int, default=4)
+    parser.add_argument('--epochs', type=int, default=50)
+    parser.add_argument('--ckpt', type=str)
+    args, _ = parser.parse_known_args()
+    return args

@@ -51,9 +51,9 @@ params = {
     'device': device,
     'debug': False,
     'checkpoint':
-    'allenai/longformer-base-4096',  #'allenai/longformer-base-4096',
+    'allenai/longformer-base-4096',  # 'allenai/longformer-base-4096',
     'tokenizer_ckpt':
-    'allenai/longformer-base-4096',  #'allenai/longformer-base-4096',
+    'allenai/longformer-base-4096',  # 'allenai/longformer-base-4096',
     'output_logits': 768,
     'max_len': 4096,
     'batch_size': 32,
@@ -92,7 +92,7 @@ class TextEDIDataset(Dataset):
         else:
             return {'text': text}
 
-    def collate_fnc(self, input):  #list[dict]
+    def collate_fnc(self, input):  # list[dict]
         texts = np.array([inp['text'] for inp in input])
         labels = None
         if self.is_training:
@@ -156,6 +156,7 @@ train_loader = DataLoader(train_dataset,
                           shuffle=True,
                           collate_fn=train_dataset.collate_fnc,
                           generator=g)
+
 dev_loader = DataLoader(dev_dataset,
                         batch_size=params['batch_size'],
                         num_workers=params['num_workers'],
