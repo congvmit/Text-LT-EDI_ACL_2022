@@ -7,6 +7,7 @@ import re
 from bs4 import BeautifulSoup
 
 import nltk
+
 nltk.download('stopwords')
 from nltk.corpus import stopwords
 
@@ -67,7 +68,6 @@ def remove_emoji(text: str):
 def expand_contractions(s, contractions_dict: dict = contractions_dict):
     def replace(match):
         return contractions_dict[match.group(0)]
-
     contractions_re = re.compile('(%s)' % '|'.join(contractions_dict.keys()))
     return contractions_re.sub(replace, s)
 
@@ -96,7 +96,6 @@ def text_cleaning(paragraph):
     # paragraph = re.sub(r"[^a-zA-Z\d]", " ", paragraph)  # Remove special Charecters
     sents = nltk.sent_tokenize(paragraph)
     # paragraph = paragraph.replace(' .', '.')
-
     # return sents
 
     for i in range(len(sents)):
@@ -131,12 +130,9 @@ dev_df.Label = dev_df.Label.progress_apply(lambda x: label_mapping[x])
 train_df.to_csv('dataset/train_80_prepr.tsv', index=False, sep='\t')
 dev_df.to_csv('dataset/dev_20_prepr.tsv', index=False, sep='\t')
 
-
 # TEST
 test_df = pd.read_csv('dataset/dev_with_labels.tsv', sep='\t')
 test_df = test_df.rename(columns={'Text data': 'Text_data'})
-
-
 
 test_df.Text_data = test_df.Text_data.progress_apply(text_cleaning)
 test_df.Label = test_df.Label.progress_apply(lambda x: label_mapping[x])

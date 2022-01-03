@@ -1,7 +1,8 @@
-# Deep Learning
-# https://github.com/allenai/longformer/blob/master/scripts/convert_model_to_long.ipynb
-
+# Metrics
 from sklearn.metrics import recall_score, precision_score, f1_score
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
+
 from transformers import AutoModel
 import os
 import random
@@ -11,15 +12,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
-from torch.optim.lr_scheduler import OneCycleLR
-from utils import get_args
+from utils import get_args, print_metrics
+
 from tqdm import tqdm
 import pandas as pd
 from transformers import BertTokenizerFast as BertTokenizer, BertModel, AdamW, get_linear_schedule_with_warmup
-from transformers import BertTokenizer
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
+from pytorch_lightning.callbacks import BackboneFinetuning
 from pytorch_lightning.loggers import TensorBoardLogger
 from transformers import AdamW
 from torch.nn import CrossEntropyLoss
@@ -111,27 +112,43 @@ g.manual_seed(0)
 
 
 class DepressionModel(pl.LightningModule):
-    def __init__(self, n_classes: int, n_training_steps=None, n_warmup_steps=None):
+    def __init__(self,
+                 n_classes: int,
+                 lm_model_name: str,
+                 n_training_steps: int = None,
+                 n_warmup_steps: int = None,
+                 lr=2e-5):
         super().__init__()
         self.n_classes = n_classes
         self.n_warmup_steps = n_warmup_steps
         self.n_training_steps = n_training_steps
-        self.model = AutoModel.from_pretrained(LM_MODEL_NAME,
-                                               #    local_files_only=True,
-                                               return_dict=True)
-        self.classifier = nn.Linear(self.model.config.hidden_size, n_classes)
+        self.lm_model_name = lm_model_name
+        self.lr = lr
+
+        self.backbone = AutoModel.from_pretrained(lm_model_name,
+                                                  return_dict=True)
+        self.hidden_size = self.backbone.config.hidden_size
+
+        self.classifier = nn.Linear(self.hidden_size, n_classes)
         self.criterion = CrossEntropyLoss()
 
-    def backbone_forward(self, input_ids, token_type_ids, attention_mask):
-        self.model.eval()
+        self.save_hyperparameters({
+            'n_classes': self.n_classes,
+            'n_warmup_steps': self.n_warmup_steps,
+            'n_training_steps': self.n_training_steps,
+            'lm_model_name': self.lm_model_name,
+            'hidden_size': self.hidden_size,
+            'lr': self.lr
+        })
+
+    def backbone_forward(self, input_ids, attention_mask):
         with torch.no_grad():
-            output = self.model(input_ids=input_ids,
-                                token_type_ids=token_type_ids,
-                                attention_mask=attention_mask)
-            return output
+            output = self.backbone(input_ids=input_ids,
+                                   attention_mask=attention_mask)
+        return output
 
     def forward(self, input_ids, attention_mask, labels=None):
-        output = self.model(input_ids, attention_mask=attention_mask)
+        output = self.backbone(input_ids, attention_mask=attention_mask)
         # cls_token = output['last_hidden_state'][:, 0, ...]
         output = self.classifier(output.pooler_output)
         loss = 0
@@ -148,9 +165,17 @@ class DepressionModel(pl.LightningModule):
                              attention_mask=attention_mask,
                              labels=labels)
         prob = torch.log_softmax(outputs, dim=1)
-        self.log("train_loss", loss, prog_bar=True,
-                 on_epoch=True, on_step=False, logger=True)
-        return {"loss": loss, "predictions": prob.detach(), "labels": labels.detach()}
+        self.log("train_loss",
+                 loss,
+                 prog_bar=True,
+                 on_epoch=True,
+                 on_step=False,
+                 logger=True)
+        return {
+            "loss": loss,
+            "predictions": prob.detach(),
+            "labels": labels.detach()
+        }
 
     def training_epoch_end(self, outputs):
         labels = []
@@ -162,14 +187,23 @@ class DepressionModel(pl.LightningModule):
                 predictions.append(out_predictions)
 
         labels = torch.stack(labels).int().detach().numpy()
-        predictions = torch.argmax(torch.stack(
-            predictions), dim=1).detach().numpy()
-        macro_recall = recall_score(y_true=labels, y_pred=predictions, labels=range(
-            self.n_classes), average='macro', zero_division=0)
-        macro_prec = precision_score(y_true=labels, y_pred=predictions, labels=range(
-            self.n_classes), average='macro', zero_division=0)
-        macro_f1 = f1_score(y_true=labels, y_pred=predictions,
-                            labels=range(self.n_classes), average='macro', zero_division=0)
+        predictions = torch.argmax(torch.stack(predictions),
+                                   dim=1).detach().numpy()
+        macro_recall = recall_score(y_true=labels,
+                                    y_pred=predictions,
+                                    labels=range(self.n_classes),
+                                    average='macro',
+                                    zero_division=0)
+        macro_prec = precision_score(y_true=labels,
+                                     y_pred=predictions,
+                                     labels=range(self.n_classes),
+                                     average='macro',
+                                     zero_division=0)
+        macro_f1 = f1_score(y_true=labels,
+                            y_pred=predictions,
+                            labels=range(self.n_classes),
+                            average='macro',
+                            zero_division=0)
         self.log('train_macro_recall',
                  macro_recall,
                  logger=True,
@@ -201,7 +235,11 @@ class DepressionModel(pl.LightningModule):
                  prog_bar=True,
                  on_step=False,
                  on_epoch=True)
-        return {"loss": loss, "predictions": prob.detach(), "labels": labels.detach()}
+        return {
+            "loss": loss,
+            "predictions": prob.detach(),
+            "labels": labels.detach()
+        }
 
     def validation_epoch_end(self, outputs):
         labels = []
@@ -213,14 +251,23 @@ class DepressionModel(pl.LightningModule):
                 predictions.append(out_predictions)
 
         labels = torch.stack(labels).int().detach().numpy()
-        predictions = torch.argmax(torch.stack(
-            predictions), dim=1).detach().numpy()
-        macro_recall = recall_score(y_true=labels, y_pred=predictions, labels=range(
-            self.n_classes), average='macro', zero_division=0)
-        macro_prec = precision_score(y_true=labels, y_pred=predictions, labels=range(
-            self.n_classes), average='macro', zero_division=0)
-        macro_f1 = f1_score(y_true=labels, y_pred=predictions,
-                            labels=range(self.n_classes), average='macro', zero_division=0)
+        predictions = torch.argmax(torch.stack(predictions),
+                                   dim=1).detach().numpy()
+        macro_recall = recall_score(y_true=labels,
+                                    y_pred=predictions,
+                                    labels=range(self.n_classes),
+                                    average='macro',
+                                    zero_division=0)
+        macro_prec = precision_score(y_true=labels,
+                                     y_pred=predictions,
+                                     labels=range(self.n_classes),
+                                     average='macro',
+                                     zero_division=0)
+        macro_f1 = f1_score(y_true=labels,
+                            y_pred=predictions,
+                            labels=range(self.n_classes),
+                            average='macro',
+                            zero_division=0)
         self.log('dev_macro_recall',
                  macro_recall,
                  logger=True,
@@ -237,22 +284,74 @@ class DepressionModel(pl.LightningModule):
                  prog_bar=True,
                  on_epoch=True)
 
+    def test_step(self, batch, batch_idx):
+        labels = batch["label"]
+        input_ids = batch["input_ids"]
+        attention_mask = batch["attention_mask"]
+
+        loss, outputs = self(input_ids,
+                             attention_mask=attention_mask,
+                             labels=labels)
+        prob = torch.log_softmax(outputs, dim=1)
+        return {
+            "loss": loss,
+            "predictions": prob.detach(),
+            "labels": labels.detach()
+        }
+
+    def test_epoch_end(self, outputs):
+        labels = []
+        predictions = []
+        for output in outputs:
+            for out_labels in output["labels"].detach().cpu():
+                labels.append(out_labels)
+            for out_predictions in output["predictions"].detach().cpu():
+                predictions.append(out_predictions)
+
+        labels = torch.stack(labels).int().detach().numpy()
+        predictions = torch.argmax(torch.stack(predictions),
+                                   dim=1).detach().numpy()
+        macro_recall = recall_score(y_true=labels,
+                                    y_pred=predictions,
+                                    labels=range(self.n_classes),
+                                    average='macro',
+                                    zero_division=0)
+        macro_prec = precision_score(y_true=labels,
+                                     y_pred=predictions,
+                                     labels=range(self.n_classes),
+                                     average='macro',
+                                     zero_division=0)
+        macro_f1 = f1_score(y_true=labels,
+                            y_pred=predictions,
+                            labels=range(self.n_classes),
+                            average='macro',
+                            zero_division=0)
+
+        print_metrics(
+            y_true=labels,
+            y_pred=predictions,
+        )
+
+        # Print metrics for challenges
+        self.log_dict(
+            {
+                'test_macro_recall': macro_recall,
+                'test_macro_prec': macro_prec,
+                'test_macro_f1': macro_f1
+            },
+            prog_bar=True)
+
     def configure_optimizers(self):
-        optimizer = AdamW(self.parameters(), lr=2e-5)
+        optimizer = AdamW(filter(lambda p: p.requires_grad, self.parameters()),
+                          lr=self.lr)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=self.n_warmup_steps,
-            num_training_steps=self.n_training_steps
-        )
+            num_training_steps=self.n_training_steps)
 
-        return dict(
-            optimizer=optimizer,
-            lr_scheduler=dict(
-                scheduler=scheduler,
-                interval='step'
-            )
-        )
+        return dict(optimizer=optimizer,
+                    lr_scheduler=dict(scheduler=scheduler, interval='step'))
 
 
 if __name__ == '__main__':
@@ -264,26 +363,27 @@ if __name__ == '__main__':
     LM_MODEL_NAME = 'bert-base-cased'
     TOKENIZER_NAME = 'bert-base-cased'
 
-    train_df = pd.read_csv('dataset/train_80_prepr.tsv', sep='\t')
-    dev_df = pd.read_csv('dataset/dev_20_prepr.tsv', sep='\t')
-
-    train_dataset = TextEDIDataset(
-        train_df, max_len=MAX_LEN, tokenizer_name=TOKENIZER_NAME)
-    dev_dataset = TextEDIDataset(
-        dev_df, max_len=MAX_LEN, tokenizer_name=TOKENIZER_NAME)
-    train_loader = DataLoader(train_dataset,
-                              batch_size=args.batch_size,
-                              num_workers=N_WORKERS,
-                              shuffle=True,
-                              worker_init_fn=seed_worker,
-                              generator=g)
-    dev_loader = DataLoader(dev_dataset,
-                            batch_size=args.batch_size,
-                            num_workers=N_WORKERS,
-                            worker_init_fn=seed_worker,
-                            generator=g)
-
     if not args.is_test:
+        train_df = pd.read_csv('dataset/train_80_prepr.tsv', sep='\t')
+        dev_df = pd.read_csv('dataset/dev_20_prepr.tsv', sep='\t')
+
+        train_dataset = TextEDIDataset(train_df,
+                                       max_len=MAX_LEN,
+                                       tokenizer_name=TOKENIZER_NAME)
+        dev_dataset = TextEDIDataset(dev_df,
+                                     max_len=MAX_LEN,
+                                     tokenizer_name=TOKENIZER_NAME)
+        train_loader = DataLoader(train_dataset,
+                                  batch_size=args.batch_size,
+                                  num_workers=N_WORKERS,
+                                  shuffle=True,
+                                  worker_init_fn=seed_worker,
+                                  generator=g)
+        dev_loader = DataLoader(dev_dataset,
+                                batch_size=args.batch_size,
+                                num_workers=N_WORKERS,
+                                worker_init_fn=seed_worker,
+                                generator=g)
         checkpoint_callback = ModelCheckpoint(
             monitor="val_loss",
             filename="model-{epoch:02d}-{val_loss:.2f}",
@@ -298,34 +398,45 @@ if __name__ == '__main__':
         #                                     verbose=True,
         #                                     mode="min")
 
-        trainer = pl.Trainer(gpus=1,
-                             logger=logger,
-                             callbacks=[checkpoint_callback],
-                             log_every_n_steps=10,
-                             gradient_clip_val=2,
-                             max_epochs=args.epochs)
+        backbone_callback = BackboneFinetuning(unfreeze_backbone_at_epoch=1,
+                                               verbose=True,
+                                               initial_denom_lr=10)
+        lr_monitor = LearningRateMonitor(logging_interval='step',
+                                         log_momentum=True)
+        trainer = pl.Trainer(
+            gpus=1,
+            logger=logger,
+            callbacks=[lr_monitor, checkpoint_callback, backbone_callback],
+            log_every_n_steps=10,
+            gradient_clip_val=2,
+            max_epochs=args.epochs)
 
         steps_per_epoch = len(train_df) // args.batch_size
         total_training_steps = steps_per_epoch * args.epochs
-        warmup_steps = total_training_steps // 5  # Use first fifth steps for warmup
+        warmup_steps = total_training_steps // 10  # Use first fifth steps for warmup
 
         model = DepressionModel(n_classes=N_CLASSES,
+                                lm_model_name=LM_MODEL_NAME,
                                 n_training_steps=total_training_steps,
-                                n_warmup_steps=warmup_steps)
-
+                                n_warmup_steps=warmup_steps,
+                                lr=2e-5)
         trainer.fit(model,
                     train_dataloaders=train_loader,
                     val_dataloaders=dev_loader)
 
     else:
         test_df = pd.read_csv('dataset/dev_with_labels_prepr.tsv', sep='\t')
-        test_dataset = TextEDIDataset(
-            test_df, max_len=MAX_LEN, tokenizer_name=TOKENIZER_NAME)
+        test_dataset = TextEDIDataset(test_df,
+                                      max_len=MAX_LEN,
+                                      tokenizer_name=TOKENIZER_NAME)
 
-        # TODO: Reload CKPT
-        trainer = pl.Trainer(gpus=1)
+        test_loader = DataLoader(test_dataset,
+                                 batch_size=args.batch_size,
+                                 num_workers=N_WORKERS,
+                                 worker_init_fn=seed_worker,
+                                 generator=g)
 
-        model = DepressionModel(n_classes=N_CLASSES)
-
-        trainer.test(model,
-                     test_dataloaders=test_df)
+        trainer = pl.Trainer(gpus=1, logger=False)
+        model = DepressionModel.load_from_checkpoint(
+            args.ckpt, n_classes=N_CLASSES, lm_model_name=LM_MODEL_NAME)
+        trainer.test(model, test_dataloaders=test_loader)

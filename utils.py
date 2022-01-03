@@ -185,6 +185,7 @@ contractions_dict = {
     "won't": "will not",
 }
 
+
 def get_args():
     import argparse
 
@@ -195,3 +196,32 @@ def get_args():
     parser.add_argument('--ckpt', type=str)
     args, _ = parser.parse_known_args()
     return args
+
+
+import pandas as pd
+import os
+from sklearn.metrics import classification_report, confusion_matrix
+
+
+def print_metrics(y_true, y_pred):
+    LABEL_MAPPING = {
+        'moderate - 0': 0,
+        'not depression - 1': 1,
+        'severe - 2': 2
+    }
+    col, _ = os.get_terminal_size()
+    col = int(col * 0.85)
+    print('=' * col)
+    print(
+        classification_report(y_true=y_true,
+                              y_pred=y_pred,
+                              labels=range(len(LABEL_MAPPING)),
+                              target_names=LABEL_MAPPING.keys()))
+    print('-' * col)
+    print('Confusion Matrix: Row (True) - Col (Pred)')
+    print(
+        pd.DataFrame(confusion_matrix(y_true=y_true,
+                                      y_pred=y_pred,
+                                      labels=range(len(LABEL_MAPPING)),
+                                      normalize='true'),
+                     columns=LABEL_MAPPING.keys()))
