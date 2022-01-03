@@ -361,9 +361,9 @@ if __name__ == '__main__':
     N_CLASSES = 3
     MAX_LEN = 512
     N_WARMUP_EPOCH = 1
-    MODEL_NAME = 'BERT'
-    LM_MODEL_NAME = 'bert-base-cased'
-    TOKENIZER_NAME = 'bert-base-cased'
+    MODEL_NAME = 'ROBERTA'
+    LM_MODEL_NAME = 'roberta-base'
+    TOKENIZER_NAME = 'roberta-base'
 
     if not args.is_test:
         train_df = pd.read_csv('dataset/train_80_prepr.tsv', sep='\t')
