@@ -106,3 +106,4 @@ python train-roberta-512.py
 - https://github.com/prateekjoshi565/Fine-Tuning-BERT/blob/master/Fine_Tuning_BERT_for_Spam_Classification.ipynb
 - https://colab.research.google.com/github/DhavalTaunk08/Transformers_scripts/blob/master/Transformers_multilabel_distilbert.ipynb
 - https://colab.research.google.com/github/digitalepidemiologylab/covid-twitter-bert/blob/master/CT_BERT_Huggingface_(GPU_training).ipynb#scrollTo=jvvPnOFQH2pR
+- Text-based Emotion Classification Survey: https://onlinelibrary.wiley.com/doi/full/10.1002/eng2.12189
