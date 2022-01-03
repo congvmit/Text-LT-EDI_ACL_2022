@@ -38,10 +38,9 @@ Classification system’s performance will be measured in terms of **macro avera
 
 [1] Institute of Health Metrics and Evaluation. Global Health Data Exchange (GHDx). http://ghdx.healthdata.org/gbd-results-tool?params=gbd-api-2019-permalink/d780dffbe8a381b25e1416884959e88b \
 [2] Evans-Lacko S, Aguilar-Gaxiola S, Al-Hamzawi A, et al. Socio-economic variations in the mental health treatment gap for people with anxiety, mood, and substance use disorders: results from the WHO World Mental Health (WMH) surveys. Psychol Med. 2018;48(9):1560-1571.\
-[3] Losada, D. E., Crestani, F., & Parapar, J. (2017, September). eRISK 2017: CLEF lab on early risk prediction on the internet: experimental foundations. In the International Conference of the Cross-Language Evaluation Forum for European Languages (pp. 346-360). Springer, Cham.
-[4] [Figueredo, José, and Rodrigo Calumby. "On Text Preprocessing for Early Detection of Depression on Social Media." Anais do XX Simpósio Brasileiro de Computação Aplicada à Saúde. SBC, 2020.](https://sol.sbc.org.br/index.php/sbcas/article/view/11504/11367)
-
-[5] Nakamura, T., Kubo, K., Usuda, Y., and Aramaki, E. (2014). Defining patients withdepressive disorder by using textual information. In 2014 AAAI Spring Symposia, Stanford University, Palo Alto, California, USA, March 24-26, 2014.
+[3] Losada, D. E., Crestani, F., & Parapar, J. (2017, September). eRISK 2017: CLEF lab on early risk prediction on the internet: experimental foundations. In the International Conference of the Cross-Language Evaluation Forum for European Languages (pp. 346-360). Springer, Cham. \
+[4] [Figueredo, José, and Rodrigo Calumby. "On Text Preprocessing for Early Detection of Depression on Social Media." Anais do XX Simpósio Brasileiro de Computação Aplicada à Saúde. SBC, 2020.](https://sol.sbc.org.br/index.php/sbcas/article/view/11504/11367) \
+[5] Nakamura, T., Kubo, K., Usuda, Y., and Aramaki, E. (2014). Defining patients withdepressive disorder by using textual information. In 2014 AAAI Spring Symposia, Stanford University, Palo Alto, California, USA, March 24-26, 2014. \
 [6] Vedula, N. and Parthasarathy, S. (2017). Emotional and linguistic cues of depression fromsocial media. InProceedings of the 2017 International Conference on Digital Health,London, United Kingdom, July 2-5, 2017, pages 127–136.
 
 ## IV - How to run
