@@ -59,11 +59,11 @@ python train-bert-512.py --is-training
   </tr>
 
   <tr>
-    <td>multinomialNB</td>
-    <td><center>-</center></td>
-    <td><center>-</center></td>
-    <td><center>-</center></td>
-    <td><center>-</center></td>
+    <td>LSTM</td>
+    <td><center>0.337</center></td>
+    <td><center>0.883</center></td>
+    <td><center>1.21</center></td>
+    <td><center>0.523</center></td>
     <td><center>-</center></td>
   </tr>
 </table>
