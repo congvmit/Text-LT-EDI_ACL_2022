@@ -47,17 +47,18 @@ Classification system’s performance will be measured in terms of **macro avera
 ## IV - How to run
 
 ```bash
+python preprocessing_v1.py
 python train-bert-512.py
 ```
 
 ## V - Current Results
 
-<style>
+<!-- <style>
   .double {
     border-top: 4px double #999;
     padding: 10px 0;
     }
-</style>
+</style> -->
 
 <table>
   <tr>
