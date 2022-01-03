@@ -46,8 +46,9 @@ Classification system’s performance will be measured in terms of **macro avera
 ## IV - How to run
 
 ```bash
-python preprocessing_v1.py
+python preprocessing_v2.py
 python train-bert-512.py
+python train-roberta-512.py
 ```
 
 ## V - Current Results
@@ -84,9 +85,9 @@ python train-bert-512.py
   <tr class="double">
     <td>RoBERTa@512</td>
     <td><center>0</center></td>
-    <td><center>-</center></td>
-    <td><center>-</center></td>
-    <td><center>-</center></td>
+    <td><center>0.5100</center></td>
+    <td><center>0.5676</center></td>
+    <td><center>0.5067</center></td>
   </tr>
   <tr class="double">
     <td>LSTM</td>
