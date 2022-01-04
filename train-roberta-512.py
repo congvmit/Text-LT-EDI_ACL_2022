@@ -362,8 +362,8 @@ if __name__ == '__main__':
     MAX_LEN = 512
     N_WARMUP_EPOCH = 1
     MODEL_NAME = 'ROBERTA'
-    LM_MODEL_NAME = 'roberta-base'
-    TOKENIZER_NAME = 'roberta-base'
+    LM_MODEL_NAME = 'roberta-large'
+    TOKENIZER_NAME = 'roberta-large'
 
     if not args.is_test:
         train_df = pd.read_csv('dataset/train_80_prepr.tsv', sep='\t')
@@ -400,18 +400,19 @@ if __name__ == '__main__':
         #                                     verbose=True,
         #                                     mode="min")
 
-        backbone_callback = BackboneFinetuning(unfreeze_backbone_at_epoch=3,
+        backbone_callback = BackboneFinetuning(unfreeze_backbone_at_epoch=1,
                                                verbose=True,
-                                               initial_denom_lr=10)
+                                               initial_denom_lr=100)
+
         lr_monitor = LearningRateMonitor(logging_interval='step',
                                          log_momentum=True)
-        trainer = pl.Trainer(
-            gpus=1,
-            logger=logger,
-            callbacks=[lr_monitor, checkpoint_callback, backbone_callback],
-            log_every_n_steps=10,
-            gradient_clip_val=2,
-            max_epochs=args.epochs)
+
+        trainer = pl.Trainer(gpus=1,
+                             logger=logger,
+                             callbacks=[lr_monitor, checkpoint_callback],
+                             log_every_n_steps=10,
+                             gradient_clip_val=2,
+                             max_epochs=args.epochs)
 
         steps_per_epoch = len(train_df) // args.batch_size
         total_training_steps = steps_per_epoch * args.epochs
